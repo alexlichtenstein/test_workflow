@@ -5,7 +5,7 @@ on:
     - cron: "*/15 * * * *"  # Run every 15 minutes
 
   workflow_dispatch:
-  
+
 jobs:
   check_urls:
     runs-on: ubuntu-latest
@@ -14,7 +14,7 @@ jobs:
       - name: URL Status Check
         run: |
           # Define an array of URLs to check
-          urls=("https://www.swm.de/energiewende" "https://crm-m-waermepumpe.swm.de/web/login" "https://crm-m-waerme.swm.de/de/web/login" "https://nis-map-nahfw.apps.intra.swm.de/")
+          urls=("https://www.swm.de/energiewende" "https://crm-m-waermepumpe.swm.de/web/login" "https://crm-m-waerme.swm.de/de/web/login" "https://nis-map-nahfw.apps.intra.swm.de")
 
           # Prepare an empty results array to hold URL and status code
           results=()
