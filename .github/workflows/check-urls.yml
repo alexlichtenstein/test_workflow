@@ -1,0 +1,43 @@
+name: URL Status Check
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"  # Run every 15 minutes
+  workflow_dispatch:
+
+jobs:
+  check_urls:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: URL Status Check
+        run: |
+          # Define an array of URLs to check
+          urls=("https://www.swm.de/energiewende" "https://crm-m-waermepumpe.swm.de/web/login" "https://crm-m-waerme.swm.de/de/web/login" "https://nis-map-nahfw.apps.intra.swm.de/")
+
+          # Prepare an empty results array to hold URL and status code
+          results=()
+
+          # Loop through each URL and make a GET request using curl
+          for url in "${urls[@]}"; do
+            # Make the GET request and capture the HTTP status code
+            status_code=$(curl -o /dev/null -s -w "%{http_code}\n" "$url")
+
+            # Append the result as a JSON object to the results array
+            results+=("{\"url\":\"$url\",\"response_code\":$status_code}")
+
+            # Print the result to the GitHub Actions log
+            echo "URL: $url, Status Code: $status_code"
+          done
+
+          # Join the results array into a JSON array string
+          results_json=$(printf "%s\n" "${results[@]}" | jq -s '.')
+
+          # Print the JSON to see the results
+          echo "Results: $results_json"
+
+          # Send the results to the specified endpoint using curl
+          post_results_url="https://prod-29.germanywestcentral.logic.azure.com:443/workflows/fcb5d309d16a46a7a683f5c0de3825ba/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=v_ZR9ulsxAYO8qsfMNCD4fg8emRme4Uxe6GbIilP-MQ"
+          curl -X POST "$post_results_url" \
+               -H "Content-Type: application/json" \
+               -d "$results_json"
