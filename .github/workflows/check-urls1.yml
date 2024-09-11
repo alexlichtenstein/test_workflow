@@ -21,11 +21,15 @@ jobs:
 
           # Loop through each URL and make a GET request using curl
           for url in "${urls[@]}"; do
+            echo "Checking URL: $url"
+            
             # Make the GET request and capture the HTTP status code and any potential errors
             status_code=$(curl -o /dev/null -s -w "%{http_code}" --connect-timeout 5 --max-time 10 "$url")
             
             # Capture the curl exit code
             curl_exit_code=$?
+
+            echo "Curl Exit Code: $curl_exit_code"
 
             # Handle curl exit codes
             case $curl_exit_code in
