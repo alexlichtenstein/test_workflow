@@ -5,6 +5,7 @@ on:
     - cron: "*/15 * * * *"  # Run every 15 minutes
 
   workflow_dispatch:
+  
 jobs:
   check_urls:
     runs-on: ubuntu-latest
@@ -23,18 +24,43 @@ jobs:
             # Make the GET request and capture the HTTP status code and any potential errors
             status_code=$(curl -o /dev/null -s -w "%{http_code}" --connect-timeout 5 --max-time 10 "$url")
             
-            # Check if the curl command was successful
-            if [ $? -ne 0 ]; then
-              # If curl fails (e.g., connection timeout), set status code to 503 (unreachable)
-              if [ "$status_code" -eq "000" ]; then
-                echo "URL: $url is unreachable (timeout or connection failure). Setting response code to 503."
-                status_code=503
-              else
-                # If another error occurs (e.g., DNS resolution failure), set status code to 0
-                echo "URL: $url encountered an error. Setting response code to 0."
-                status_code=0
-              fi
-            fi
+            # Capture the curl exit code
+            curl_exit_code=$?
+
+            # Handle curl exit codes
+            case $curl_exit_code in
+              0)
+                # Success, keep the actual status code
+                ;;
+              6)
+                echo "URL: $url could not be resolved (DNS failure). Setting response code to 0."
+                status_code=0  # DNS error, set to 0 (non-HTTP error)
+                ;;
+              7)
+                echo "URL: $url failed to connect. Setting response code to 502."
+                status_code=502  # Failed to connect, set to 502 Bad Gateway
+                ;;
+              28)
+                echo "URL: $url timed out. Setting response code to 504."
+                status_code=504  # Timeout, set to 504 Gateway Timeout
+                ;;
+              35|51|77)
+                echo "URL: $url encountered an SSL error. Setting response code to 495."
+                status_code=495  # SSL/TLS error, set to 495 SSL Certificate Error
+                ;;
+              52)
+                echo "URL: $url received an empty reply. Setting response code to 502."
+                status_code=502  # Empty reply, set to 502 Bad Gateway
+                ;;
+              56)
+                echo "URL: $url failed to receive network data. Setting response code to 502."
+                status_code=502  # Network data failure, set to 502 Bad Gateway
+                ;;
+              *)
+                echo "URL: $url encountered an unknown error. Setting response code to 500."
+                status_code=500  # Unknown error, set to 500 Internal Server Error
+                ;;
+            esac
 
             # Append the result with the actual or adjusted status code
             echo "URL: $url, Status Code: $status_code"
